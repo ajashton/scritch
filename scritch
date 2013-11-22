@@ -1,0 +1,73 @@
+#!/bin/bash
+set -e -u
+
+
+function error() {
+    echo "$@" 1>&2
+    exit 1
+}
+
+function usage() {
+echo "scritch
+Basic screenshot util using scrot + Ubuntu One.
+
+Usage: $0 [option]
+
+Options:
+  -h    Show this help message and exit
+
+Selecting the screenshot area:
+
+You can click on a window to select the window area, or click and drag to draw
+a box area.  The image will automatically be saved to Ubuntu One, published,
+and the public URL copied to your clipboard."
+}
+
+function get_opts() {
+    while getopts ":h" opt; do
+        case $opt in
+            h)  usage; exit;;
+            ?)  usage; exit 1;;
+        esac
+    done
+}
+
+function dep_check() {
+    # Check that all dependencies are available.
+
+    if [[ -z $(which scrot) ]]; then
+        error "Dependency 'scrot' not found."
+    fi
+
+    if [[ -z $(which u1sdtool) ]]; then
+        error "Dependency 'u1sdtool' not found. Make sure 'ubuntuone-client' or similar is installed."
+    fi
+
+    if [[ -z $(which xclip) ]]; then
+        error "Dependency 'xclip' not found."
+    fi
+}
+
+function main() {
+    dep_check
+    get_opts $@
+    local OUTDIR="$HOME/Ubuntu One/scritch"
+    local outfile="$OUTDIR/$(date -Isecond).png"
+
+    mkdir -p "$OUTDIR"
+    scrot --silent --border --select "$outfile"
+
+    # wait for file to upload to Ubuntu One
+    sleep 1  # give upload time to start
+    while (u1sdtool --waiting | grep -q "$outfile"); do
+        # TODO: timeout
+        sleep 1
+    done
+
+    url=$(u1sdtool --publish-file="$outfile" | sed 's/.*\(http:\/\/\)/\1/')
+
+    xclip -selection "clipboard" <<< $url
+
+}
+
+main $@
