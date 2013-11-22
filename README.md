@@ -3,7 +3,7 @@ scritch
 
 Basic screenshot util using scrot + Ubuntu One.
 
-__Usage:__ $0 [option]
+__Usage:__ scritch [option]
 
 __Options:__
   -h    Show this help message and exit
